@@ -22,7 +22,7 @@ def add_credible_set(df, credible_set=0.9):
     """
     total_rows = df.shape[0]
 
-    df["temp_index"] = list(range(total_rows))
+    df["plot_index"] = list(range(total_rows))
     df = df.sort_values(by=["pip"], ascending=False)
 
     # add credible set flag
@@ -32,8 +32,7 @@ def add_credible_set(df, credible_set=0.9):
     in_cred_set = csum <= credible_set
     df["in_cred_set"] = in_cred_set.astype(int)
 
-    df = df.sort_values(by=["temp_index"], ascending = True)
-    df.drop(["temp_index"], axis = 1)
+    df = df.sort_values(by=["plot_index"], ascending = True)
     return df
 
 
