@@ -845,10 +845,16 @@ def run_twas(args):
                 # fine-map can break and return early if there are issues so check for non-None result
                 if result is not None:
                     if args.plot:
-                        result, plots = result
+                        result, wcor, plots = result
                         for i, plot in enumerate(plots):
                             fig_name = "{}.chr{}.{}.{}.pdf".format(args.output, chrom, int(start), int(stop))
                             plot.savefig(fig_name, format='pdf', dpi=300)
+                    else:
+                        result, wcor = result
+
+                    log.info("Save wcore for chr{}.{}.{}".format(chrom, int(start), int(stop)))
+                    wcor_output_file = "{}.chr{}.{}.{}.wcor.csv".format(args.output, chrom, int(start), int(stop))
+                    np.savetxt(wcor_output_file, wcor, delimiter =",", newline = "\n")
 
                     pyfocus.write_output(result, output, append=written)
                     written = True

@@ -20,6 +20,9 @@ def add_credible_set(df, credible_set=0.9):
 
     :return: pandas.DataFrame containing TWAS summary results augmented with `in_cred_set` flag
     """
+    total_rows = df.shape[0]
+
+    df["plot_index"] = list(range(total_rows))
     df = df.sort_values(by=["pip"], ascending=False)
 
     # add credible set flag
@@ -29,6 +32,7 @@ def add_credible_set(df, credible_set=0.9):
     in_cred_set = csum <= credible_set
     df["in_cred_set"] = in_cred_set.astype(int)
 
+    df = df.sort_values(by=["plot_index"], ascending = True)
     return df
 
 
@@ -50,7 +54,7 @@ def create_output(meta_data, attr, zscores, pips, null_res, region):
     df = pd.merge(meta_data, attr, left_on="model_id", right_index=True)
     df["twas_z"] = zscores
     df["pip"] = pips
-    df["in_cred_set"] = 0 
+    df["in_cred_set"] = 0
     df["region"] = region
 
     # sort by tx start site and we're good to go
@@ -425,9 +429,9 @@ def fine_map(gwas, wcollection, ref_geno, intercept=False, heterogeneity=False, 
 
         # sort here and create credible set
         df = add_credible_set(df, credible_set=credible_level)
-        return df, plot_arr
+        return df, wcor, plot_arr
 
     else:
         # sort here and create credible set
         df = add_credible_set(df, credible_set=credible_level)
-        return df
+        return df, wcor
