@@ -279,7 +279,6 @@ def parse_dat(dat_gen, convert_colname, log, args):
                 dat[c] = pd.to_numeric(dat[c], errors="coerce")
 
         dat.columns = map(lambda x: convert_colname[x], dat.columns)
-        print(dat.columns)
 
         # Drop using only minimally required columns
         req_cols = ['CHR', 'BP', 'SNP', 'A1', 'A2', 'P']
@@ -326,7 +325,6 @@ def parse_dat(dat_gen, convert_colname, log, args):
         if ii.sum() == 0:
             continue
 
-        print(drops)
         if block_num > 5:
             break
         dat_list.append(dat[ii].reset_index(drop=True))
@@ -630,12 +628,6 @@ def munge(args):
         dtypes[args.chr_col] = "category"
         # dtypes['CHR'] = "category"
 
-        print(dtypes)
-        test = pd.read_csv(args.sumstats, delim_whitespace=True, header=0,
-                              compression=compression, usecols=cname_translation.keys(),
-                              na_values=['.', 'NA'], iterator=False, nrows=10, chunksize=args.chunksize,
-                              dtype=dtypes)
-        print(pd.read_csv(args.sumstats, compression = "gzip", dtype=dtypes, header = 0, delim_whitespace=True, nrows = 10))
         dat_gen = pd.read_csv(args.sumstats, delim_whitespace=True, header=0,
                               compression=compression, usecols=cname_translation.keys(),
                               na_values=['.', 'NA', 'NaN'], iterator=True, chunksize=args.chunksize,
