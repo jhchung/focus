@@ -831,7 +831,9 @@ def run_twas(args):
                         result, wcor = result
 
                     log.info("Save wcore for chr{}.{}.{}".format(chrom, int(start), int(stop)))
-                    np.save("{}.chr{}.{}.{}.wcor.npy".format(args.output, chrom, int(start), int(stop)), wcor)
+                    wcor_output_file = "{}.chr{}.{}.{}.wcor.csv".format(args.output, chrom, int(start), int(stop))
+                    np.savetxt(wcor_output_file, wcor, delimiter =",", newline = "\n")
+
                     pyfocus.write_output(result, output, append=written)
                     written = True
 
