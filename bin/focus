@@ -278,22 +278,18 @@ def parse_dat(dat_gen, convert_colname, log, args):
                 log.warning('Column {} expected to be numeric. Attempting to convert'.format(c))
                 dat[c] = pd.to_numeric(dat[c], errors="coerce")
 
-        
-
-        # dat = dat.dropna(axis=0, how="any", subset=filter(
-        #     lambda x: x != 'INFO', dat.columns)).reset_index(drop=True)
-        # print("after na {}".format(len(dat)))
-        drops['NA'] += old - len(dat)
         dat.columns = map(lambda x: convert_colname[x], dat.columns)
         print(dat.columns)
 
+        # Drop using only minimally required columns
         req_cols = ['CHR', 'BP', 'SNP', 'A1', 'A2', 'P']
         dat = dat.dropna(
             axis=0,
             how="any", 
             subset = req_cols
         ).reset_index(drop=True)
-        print("after na {}".format(len(dat)))
+
+        drops['NA'] += old - len(dat)
 
         ii = np.ones(len(dat), dtype=bool)
 
