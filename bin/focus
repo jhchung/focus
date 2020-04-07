@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/home/chungjo5/programs/snakemake_scripts/conda/5baa3aae/bin/python
 
 # This is a modified munge_sumstat.py from LDSC project
 # FOCUS needed a similar tool but with a few extra output columns
@@ -278,10 +278,22 @@ def parse_dat(dat_gen, convert_colname, log, args):
                 log.warning('Column {} expected to be numeric. Attempting to convert'.format(c))
                 dat[c] = pd.to_numeric(dat[c], errors="coerce")
 
-        dat = dat.dropna(axis=0, how="any", subset=filter(
-            lambda x: x != 'INFO', dat.columns)).reset_index(drop=True)
+        
+
+        # dat = dat.dropna(axis=0, how="any", subset=filter(
+        #     lambda x: x != 'INFO', dat.columns)).reset_index(drop=True)
+        # print("after na {}".format(len(dat)))
         drops['NA'] += old - len(dat)
         dat.columns = map(lambda x: convert_colname[x], dat.columns)
+        print(dat.columns)
+
+        req_cols = ['CHR', 'BP', 'SNP', 'A1', 'A2', 'P']
+        dat = dat.dropna(
+            axis=0,
+            how="any", 
+            subset = req_cols
+        ).reset_index(drop=True)
+        print("after na {}".format(len(dat)))
 
         ii = np.ones(len(dat), dtype=bool)
 
@@ -318,9 +330,13 @@ def parse_dat(dat_gen, convert_colname, log, args):
         if ii.sum() == 0:
             continue
 
+        print(drops)
+        if block_num > 5:
+            break
         dat_list.append(dat[ii].reset_index(drop=True))
 
     log.info('Done reading SNP chunks')
+    log.info('Chunks {}'.format(len(dat_list)))
     dat = pd.concat(dat_list, axis=0).reset_index(drop=True)
     log.info('Read {N} SNPs from --sumstats file'.format(N=tot_snps))
     log.info('Removed {N} SNPs with missing values'.format(N=drops['NA']))
@@ -394,6 +410,8 @@ def parse_flag_cnames(args):
         [args.N_col, 'N', '--N'],
         [args.N_cas_col, 'N_CAS', '--N-cas-col'],
         [args.N_con_col, 'N_CON', '--N-con-col'],
+        [args.chr_col, 'CHR', '--chr-col'],
+        [args.bp_col, 'BP', '--bp-col'],
         [args.a1, 'A1', '--a1'],
         [args.a2, 'A2', '--a2'],
         [args.p, 'P', '--P'],
@@ -613,10 +631,18 @@ def munge(args):
         # they're read as floats
         signed_sumstat_cols = [k for k, v in cname_translation.items() if v == 'SIGNED_SUMSTAT']
         dtypes = {c: np.float64 for c in signed_sumstat_cols}
-        dtypes['CHR'] = "category"
+        dtypes[args.chr_col] = "category"
+        # dtypes['CHR'] = "category"
+
+        print(dtypes)
+        test = pd.read_csv(args.sumstats, delim_whitespace=True, header=0,
+                              compression=compression, usecols=cname_translation.keys(),
+                              na_values=['.', 'NA'], iterator=False, nrows=10, chunksize=args.chunksize,
+                              dtype=dtypes)
+        print(pd.read_csv(args.sumstats, compression = "gzip", dtype=dtypes, header = 0, delim_whitespace=True, nrows = 10))
         dat_gen = pd.read_csv(args.sumstats, delim_whitespace=True, header=0,
                               compression=compression, usecols=cname_translation.keys(),
-                              na_values=['.', 'NA'], iterator=True, chunksize=args.chunksize,
+                              na_values=['.', 'NA', 'NaN'], iterator=True, chunksize=args.chunksize,
                               dtype=dtypes)
 
         dat = parse_dat(dat_gen, cname_translation, log, args)
@@ -1026,6 +1052,10 @@ def build_munge_parser(subp):
                       help='Chunksize.')
 
     # optional args to specify column names
+    munp.add_argument('--chr-col', default="CHR", type=str,
+                      help="Name of chromosome column")
+    munp.add_argument('--bp-col', default="BP", type=str,
+                      help="Name of base pair position column")
     munp.add_argument('--snp', default=None, type=str,
                       help='Name of SNP column (if not a name that pyfocus understands). NB: case insensitive.')
     munp.add_argument('--N-col', default=None, type=str,
