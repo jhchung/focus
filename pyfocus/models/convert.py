@@ -2,6 +2,7 @@ import logging
 
 import pandas as pd
 import pyfocus as pf
+import pdb
 
 from sqlalchemy import create_engine
 
@@ -67,6 +68,7 @@ def import_fusion(path, name, tissue, assay, use_ens_id, session):
 
     res_map = defaultdict(list)
     for result in results:
+        print(result["query"])
         res_map[result["query"]].append(result)
 
     count = 0
@@ -88,7 +90,9 @@ def import_fusion(path, name, tissue, assay, use_ens_id, session):
         id_dict = dict()
         # hits are ordered by match quality.
         for hit in res_map[g_name]:
+            print(hit)
             if "notfound" in hit:
+                print("No result")
                 continue
 
             if "ensembl" not in hit:
@@ -274,13 +278,16 @@ def import_predixcan(path, name, tissue, assay, session):
 
     # get unique genes
     genes = weights.gene.unique()
+
     genes = [gencode2ensmble(g) for g in genes]
 
     log.info("Querying mygene servers for gene annotations")
     mg = mygene.MyGeneInfo()
     results = mg.querymany(genes, scopes='ensembl.gene', verbose=False,
-                           fields=["genomic_pos_hg19,symbol,alias"], species="human")
+                           fields=["genomic_pos", "symbol", "alias"], species="human")
+                           # fields=["genomic_pos_hg19,symbol,alias"], species="human")
 
+    print(results)
     res_map = defaultdict(list)
     for result in results:
         res_map[result["query"]].append(result)
@@ -292,28 +299,41 @@ def import_predixcan(path, name, tissue, assay, session):
     count = 0
     log.info("Starting individual model conversion")
     for gid, gene in weights.groupby("gene"):
+        # pdb.set_trace()
         log.debug("Importing gene model {}".format(gid))
+
+        # log.debug("gene_extra")
         gene_extra = extra.loc[extra.gene == gid]
 
-        chrom = gene.varID.values[0].split("_")[0]  # grab chromosome from varID
+        # log.debug("position info")
+        # chrom = gene.varID.values[0].split("_")[0]  # grab chromosome from varID
+        chrom = gene.varID.values[0].split("_")[0].replace("chr", "")  # grab chromosome from varID
         pos = gene.varID.map(lambda x: int(x.split("_")[1])).values  # grab basepair pos
         txstart = txstop = np.median(pos)
 
+        # log.debug("gene id")
         g_id = gene_extra.gene.values[0]
         g_name = gene_extra.genename.values[0]
         query_id = gencode2ensmble(g_id)
 
+        log.debug("loop through hits")
         for hit in res_map[query_id]:
+            # log.debug(hit)
             if "notfound" in hit:
+                log.info("Hit not found")
                 continue
 
-            if hit["symbol"] != g_name and "alias" in hit and g_name not in hit["alias"]:
+            if "symbol" not in hit or (hit["symbol"] != g_name and "alias" in hit and g_name not in hit["alias"]):
+                log.info("No symbol information: {}".format(hit["query"]))
                 continue
 
-            if "genomic_pos_hg19" not in hit:
+            # if "genomic_pos_hg19" not in hit:
+            if "genomic_pos" not in hit:
+                log.info("No genomic_pos field")
                 continue
 
-            gpos = hit["genomic_pos_hg19"]
+            # gpos = hit["genomic_pos_hg19"]
+            gpos = hit["genomic_pos"]
             if type(gpos) is dict:
                 gpos = [gpos]
 
